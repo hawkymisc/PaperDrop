@@ -1,0 +1,7 @@
+backup/
+.build/
+build/
+*.app
+.DS_Store
+.swiftpm/
+testdata/sample.heic
