@@ -68,3 +68,7 @@ cd mac && swift test
 ```bash
 esptool --port /dev/cu.usbmodem11401 -b 921600 write-flash 0 backup/factory_PaperDIY_V1.0_full16MB.bin
 ```
+
+## ライセンス
+
+[MIT](LICENSE)
