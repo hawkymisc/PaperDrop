@@ -31,6 +31,15 @@ firmware/PaperDropReceiver/   Arduino スケッチ（M5Unified/M5GFX）
 5. 4bpp パック（1 byte = 2 px、**上位ニブルが左の画素**、0=黒 … 15=白）。
 6. プレビューは量子化後の画素から生成（=実機で見える絵）。
 
+## 多言語対応（日 / 英 / 簡体字中国語）
+
+- 文言は `PaperKit/L10n.swift` に集約。言語ごとの `switch` が全キーを網羅するため、訳の抜けはコンパイルエラーになる。プレースホルダ（`%@` `%ld` `%.1f` のみ許可）の一致、余計な `%` がないこと、日中が英語のままでないことは `L10nTests` で検査。
+- 呼び出し側の引数の数はコンパイル時に検査できない（`CVarArg`）。数が合わないときは `String(format:)` を呼ばず、エラーログを出して書式のまま表示する（未定義動作を避ける）。
+- 言語は起動時に 1 回、`Bundle.preferredLocalizations(from: [en, ja, zh-Hans], forPreferences: Locale.preferredLanguages)` で決める（AppKit が標準メニューに使うのと同じ規則なので、PaperDrop.app では窓とメニューの言語が揃う。`swift run` では `.lproj` がないためメニューは英語のまま）。該当なしは英語。繁体字（zh-Hant / zh-TW / zh-HK）も `.lproj` がないため英語になり、メニューと揃う。
+- `.app` には `en` / `ja` / `zh-Hans` の `.lproj` と `CFBundleLocalizations` を置く（`build_app.sh` の `LANGS` から生成。`Language.allCases` との一致はテストで検査）。これで標準メニュー（ファイル / 編集 …）がローカライズされ、システム設定のアプリ別言語も選べる。
+- `PaperError` の詳細文字列（errno・プロトコル行）は技術情報なので訳さない。`.image` と、`.io` のうち「ポート使用中」「切断」は投げる時点の `L10n.language` で訳した文を持つ。
+- 不採用: `Localizable.strings` / String Catalog を SwiftPM リソースにする案。手組みの `.app` では `Bundle.module` のリソースバンドルを `.app` 直下に置く必要があり codesign と相性が悪い。訳の抜けもコンパイル時に検出できない。
+
 ## シリアルプロトコル v1
 
 USB CDC（ボーレートは無意味だが 115200 を設定）。コマンドは ASCII 1 行（`\n` 終端）、応答も 1 行。デバイスのログ行は `#` で始まり、ホストは無視する。

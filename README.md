@@ -1,17 +1,20 @@
 # PaperDrop
 
-Mac から画像をドラッグ&ドロップするだけで、USB 接続した **M5Stack Paper DIY**（M5PaperS3 互換）の e-paper に表示する macOS アプリ。
+**English** | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
-- 画像を窓（または Dock アイコン）にドロップ → 自動でデバイスを検出して送信 → 約 3 秒で表示
-- JPEG / PNG / HEIC / TIFF / GIF など ImageIO 対応形式。ブラウザからの画像ドラッグも可
-- 960×540（横）/ 540×960（縦）、16 階調 + Floyd–Steinberg ディザ。プレビュー＝実機の見え方
-- 最後に送った画像はデバイスの Flash に保存され、再起動後も復元
+A macOS app that shows any image on a USB-connected **M5Stack Paper DIY** (M5PaperS3 compatible) e-paper display — just drag and drop.
 
-設計・プロトコル: [docs/DESIGN.md](docs/DESIGN.md)
+- Drop an image on the window (or the Dock icon) → the device is found and the image sent automatically → shown in about 3 seconds
+- JPEG / PNG / HEIC / TIFF / GIF and any other ImageIO format. Images dragged from a browser work too
+- 960×540 (landscape) / 540×960 (portrait), 16 gray levels with Floyd–Steinberg dithering. The preview is exactly what the panel shows
+- The last image is saved to the device's flash and restored after a reboot
+- UI in English / Japanese / Simplified Chinese (follows the macOS language; can be set per app in System Settings → General → Language & Region → Applications)
 
-## 1. ファームウェアを書き込む（初回のみ）
+Design and protocol (Japanese): [docs/DESIGN.md](docs/DESIGN.md)
 
-必要: `arduino-cli` + `m5stack:esp32` コア、ライブラリ `M5Unified` / `M5GFX`（PaperDIY 対応版: M5GFX ≥ 0.2.33）。
+## 1. Flash the firmware (first time only)
+
+Requires `arduino-cli` with the `m5stack:esp32` core and the `M5Unified` / `M5GFX` libraries (PaperDIY support: M5GFX ≥ 0.2.33).
 
 ```bash
 arduino-cli compile -b m5stack:esp32:m5stack_papers3 --output-dir build/fw firmware/PaperDropReceiver
@@ -21,54 +24,54 @@ arduino-cli compile -b m5stack:esp32:m5stack_papers3 --output-dir build/fw firmw
 arduino-cli upload -b m5stack:esp32:m5stack_papers3 -p /dev/cu.usbmodem11401 --input-dir build/fw firmware/PaperDropReceiver
 ```
 
-ボードの既定オプション（OPI PSRAM / 16MB / HW CDC / `app3M_fat9M_16MB`）のままで OK。書き込み後、画面に「PaperDrop」と表示されます。
+The board's default options (OPI PSRAM / 16MB / HW CDC / `app3M_fat9M_16MB`) are fine. After flashing, the screen shows "PaperDrop".
 
-## 2. Mac アプリをビルドする
+## 2. Build the Mac app
 
 ```bash
 mac/scripts/build_app.sh
 ```
 
-`mac/build/PaperDrop.app` ができます。`/Applications` にコピーして使えます（ad-hoc 署名）。
+This produces `mac/build/PaperDrop.app`. You can copy it to `/Applications` (ad-hoc signed).
 
-## 使い方
+## Usage
 
-| 操作 | 内容 |
+| Control | What it does |
 |---|---|
-| ドロップ | 変換して即送信（「ドロップで即送信」OFF なら送信ボタン / ⌘↩） |
-| 向き | 自動（画像の縦横比）/ 横 / 縦 |
-| 配置 | 全面（中央クロップ）/ 全体（余白は白） |
-| 180°回転 | デバイスを逆さに置くとき |
-| クリア | 画面を白にし、保存画像も削除 |
+| Drop | Converts and sends immediately (with "Send on drop" off, use the Send button / ⌘↩) |
+| Orientation | Auto (from the image's aspect ratio) / Landscape / Portrait |
+| Layout | Fill (center crop) / Fit (white margins) |
+| Rotate 180° | For a device placed upside down |
+| Clear | Blanks the screen and deletes the saved image |
 
-## CLI（自動化・検証用）
+## CLI (automation and verification)
 
 ```bash
 mac/.build/release/paperdrop-cli send testdata/testchart.png --verify 200
 ```
 
-`ping` / `send <file> [--portrait|--landscape] [--fit] [--no-dither] [--rotate180] [--verify N] [--preview out.png] [--trace]` / `clear` / `pix x y`。共通オプション `--port /dev/cu.xxx`。`--verify N` は表示後のフレームバッファから N 画素を読み戻して送信データと照合、`--trace` はデバイスからの受信行を時刻付きで表示します。
+`ping` / `send <file> [--portrait|--landscape] [--fit] [--no-dither] [--rotate180] [--verify N] [--preview out.png] [--trace]` / `clear` / `pix x y`. Common option: `--port /dev/cu.xxx`. `--verify N` reads N pixels back from the device's frame buffer after display and compares them with what was sent; `--trace` prints every line received from the device with a timestamp. Device and image error messages follow the macOS language.
 
-アプリ起動中はアプリがポートを排他的に開いているため、CLI を使うときはアプリを終了してください。
+While the app is running it holds the port exclusively, so quit the app before using the CLI.
 
-## 性能（実機 2026-11-07）
+## Performance (measured on the device, 2026-11-07)
 
-送信開始 → 表示完了（`SHOWN`）約 2.6 秒（転送 1.1 秒 + 描画 1.5 秒）。その後デバイスが約 2.6 秒かけて Flash に保存します。
+Send start → displayed (`SHOWN`) in about 2.6 s (1.1 s transfer + 1.5 s refresh). The device then spends about 2.6 s saving to flash.
 
-## テスト
+## Tests
 
 ```bash
 cd mac && swift test
 ```
 
-## 工場ファームへ戻す
+## Restoring the factory firmware
 
-書き込み前に取得した 16MB 全体バックアップ（`backup/`、git 管理外）を書き戻します。
+Write back the full 16MB backup taken before flashing (`backup/`, not in git).
 
 ```bash
 esptool --port /dev/cu.usbmodem11401 -b 921600 write-flash 0 backup/factory_PaperDIY_V1.0_full16MB.bin
 ```
 
-## ライセンス
+## License
 
 [MIT](LICENSE)

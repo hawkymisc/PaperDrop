@@ -33,7 +33,7 @@ struct PaperDropApp: App {
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("画像を開く…") { openPanel() }.keyboardShortcut("o")
+                Button(L10n.t(.openImageMenu)) { openPanel() }.keyboardShortcut("o")
             }
         }
     }
@@ -77,41 +77,41 @@ struct ContentView: View {
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "photo.on.rectangle.angled").font(.system(size: 44)).foregroundStyle(.secondary)
-                    Text("画像をドロップすると M5Paper に表示します").font(.headline)
-                    Text("JPEG / PNG / HEIC / TIFF / GIF など。⌘O でも選べます").font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.t(.dropTitle)).font(.headline)
+                    Text(L10n.t(.dropHint)).font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
         .frame(height: 340)
         .onDrop(of: [.fileURL, .image], isTargeted: $targeted) { model.handleDrop($0) }
-        .accessibilityLabel("画像のドロップ先")
+        .accessibilityLabel(L10n.t(.dropZoneA11y))
     }
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Picker("向き", selection: $model.options.orientation) {
-                    Text("自動").tag(Orientation.auto)
-                    Text("横").tag(Orientation.landscape)
-                    Text("縦").tag(Orientation.portrait)
+                Picker(L10n.t(.orientation), selection: $model.options.orientation) {
+                    Text(L10n.t(.orientationAuto)).tag(Orientation.auto)
+                    Text(L10n.t(.landscape)).tag(Orientation.landscape)
+                    Text(L10n.t(.portrait)).tag(Orientation.portrait)
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 210)
-                Picker("配置", selection: $model.options.fit) {
-                    Text("全面").tag(FitMode.fill)
-                    Text("全体").tag(FitMode.fit)
+                Picker(L10n.t(.layout), selection: $model.options.fit) {
+                    Text(L10n.t(.fill)).tag(FitMode.fill)
+                    Text(L10n.t(.fit)).tag(FitMode.fit)
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 150)
                 Spacer()
             }
             HStack(spacing: 16) {
-                Toggle("ディザ", isOn: $model.options.dither)
-                Toggle("180°回転", isOn: $model.options.rotate180)
-                Toggle("ドロップで即送信", isOn: $model.autoSend)
+                Toggle(L10n.t(.dither), isOn: $model.options.dither)
+                Toggle(L10n.t(.rotate180), isOn: $model.options.rotate180)
+                Toggle(L10n.t(.autoSend), isOn: $model.autoSend)
                 Spacer()
-                Button("クリア") { model.clearPanel() }.disabled(model.isBusy)
-                Button("送信") { model.send() }
+                Button(L10n.t(.clear)) { model.clearPanel() }.disabled(model.isBusy)
+                Button(L10n.t(.send)) { model.send() }
                     .keyboardShortcut(.return, modifiers: [.command])
                     .buttonStyle(.borderedProminent)
                     .disabled(!model.canSend)
@@ -140,15 +140,15 @@ struct ContentView: View {
     private var connectionBadge: some View {
         switch model.connection {
         case .searching:
-            Label("検索中…", systemImage: "antenna.radiowaves.left.and.right").foregroundStyle(.secondary)
+            Label(L10n.t(.searching), systemImage: "antenna.radiowaves.left.and.right").foregroundStyle(.secondary)
         case .connected(let path):
             Label((path as NSString).lastPathComponent, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                .help("M5Paper に接続中: \(path)")
+                .help(L10n.t(.connectedHelp, path))
         case .disconnected(let message):
             Button {
                 model.connect()
             } label: {
-                Label("未接続（再検索）", systemImage: "exclamationmark.triangle.fill")
+                Label(L10n.t(.disconnected), systemImage: "exclamationmark.triangle.fill")
             }
             .buttonStyle(.link)
             .foregroundStyle(.orange)
