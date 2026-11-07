@@ -11,14 +11,19 @@ public enum PaperError: Error, Equatable, LocalizedError {
     case image(String)
     case protocolViolation(String)
 
-    public var errorDescription: String? {
+    public var errorDescription: String? { message(in: L10n.language) }
+
+    /// The wrapper text follows `lang`. The payloads are not re-translated: `.image` and the
+    /// port-busy / port-disconnected `.io` messages were localized in `L10n.language` when thrown;
+    /// the rest are technical details (errno text, protocol lines) and stay as they are.
+    public func message(in lang: Language) -> String {
         switch self {
-        case .timeout(let s): return "応答タイムアウト: \(s)"
-        case .device(let s): return "デバイスがエラーを返しました: \(s)"
-        case .io(let s): return "シリアル通信エラー: \(s)"
-        case .notFound: return "M5Paper（PaperDrop ファーム）が見つかりません。USB 接続とファームの書き込みを確認してください。"
+        case .timeout(let s): return L10n.format(.errTimeout, in: lang, s)
+        case .device(let s): return L10n.format(.errDevice, in: lang, s)
+        case .io(let s): return L10n.format(.errIO, in: lang, s)
+        case .notFound: return L10n.text(.errNotFound, in: lang)
         case .image(let s): return s
-        case .protocolViolation(let s): return "想定外の応答: \(s)"
+        case .protocolViolation(let s): return L10n.format(.errProtocol, in: lang, s)
         }
     }
 }

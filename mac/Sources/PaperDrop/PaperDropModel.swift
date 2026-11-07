@@ -16,7 +16,7 @@ final class PaperDropModel: ObservableObject {
     @Published private(set) var preview: NSImage?
     @Published private(set) var sourceName: String?
     @Published private(set) var progress: Double?
-    @Published private(set) var status = "画像をここにドロップしてください"
+    @Published private(set) var status = L10n.t(.dropPrompt)
     @Published private(set) var isError = false
     @Published private(set) var connection: Connection = .searching
 
@@ -40,7 +40,7 @@ final class PaperDropModel: ObservableObject {
 
     /// Decodes off the main thread (large photos take a while), then applies on main.
     private func decode(name: String, context: String, _ load: @escaping @Sendable () throws -> CGImage) {
-        setStatus("読み込み中… \(name)", error: false)
+        setStatus(L10n.t(.loading, name), error: false)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let result = Result { try load() }
             DispatchQueue.main.async {
@@ -59,17 +59,17 @@ final class PaperDropModel: ObservableObject {
             _ = provider.loadDataRepresentation(for: .fileURL) { data, error in
                 let url = data.flatMap { URL(dataRepresentation: $0, relativeTo: nil) }
                 Task { @MainActor in
-                    if let url { self.open(urls: [url]) } else { self.report(error ?? PaperError.image("ファイルを取得できませんでした"), context: "drop fileURL") }
+                    if let url { self.open(urls: [url]) } else { self.report(error ?? PaperError.image(L10n.t(.fileUnavailable)), context: "drop fileURL") }
                 }
             }
             return true
         }
         if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-            let name = provider.suggestedName ?? "ドロップされた画像"
+            let name = provider.suggestedName ?? L10n.t(.droppedImage)
             _ = provider.loadDataRepresentation(for: .image) { data, error in
                 Task { @MainActor in
                     guard let data else {
-                        self.report(error ?? PaperError.image("画像データを取得できませんでした"), context: "drop image data")
+                        self.report(error ?? PaperError.image(L10n.t(.imageDataUnavailable)), context: "drop image data")
                         return
                     }
                     self.decode(name: name, context: "drop image data") { try ImageConverter.load(data: data, name: name) }
@@ -92,7 +92,7 @@ final class PaperDropModel: ObservableObject {
         let img = ImageConverter.convert(source, options: options)
         converted = img
         preview = img.previewImage().map { NSImage(cgImage: $0, size: NSSize(width: img.width, height: img.height)) }
-        if !isBusy { setStatus("\(sourceName ?? "画像") → \(img.width)×\(img.height)、16階調", error: false) }
+        if !isBusy { setStatus(L10n.t(.converted, sourceName ?? L10n.t(.imageFallbackName), img.width, img.height), error: false) }
     }
 
     // MARK: - device
@@ -118,17 +118,17 @@ final class PaperDropModel: ObservableObject {
 
     func send() {
         guard let image = converted, !isBusy else { return }
-        run(start: "送信中…", context: "send") { client, progress in
+        run(start: L10n.t(.sending), context: "send") { client, progress in
             let ms = try client.send(image, progress: progress)
-            return String(format: "表示しました（描画 %.1f 秒）", Double(ms) / 1000)
+            return L10n.t(.shown, Double(ms) / 1000)
         }
     }
 
     func clearPanel() {
         guard !isBusy else { return }
-        run(start: "クリア中…", context: "clear") { client, _ in
+        run(start: L10n.t(.clearing), context: "clear") { client, _ in
             try client.clear()
-            return "画面をクリアしました"
+            return L10n.t(.cleared)
         }
     }
 
@@ -152,7 +152,7 @@ final class PaperDropModel: ObservableObject {
                 switch result {
                 case .success(let (message, path)):
                     self.connection = .connected(path: path)
-                    self.setStatus(message + String(format: "　合計 %.1f 秒", elapsed), error: false)
+                    self.setStatus(message + L10n.t(.totalSuffix, elapsed), error: false)
                 case .failure(let error):
                     self.connection = .disconnected(message: error.localizedDescription)
                     self.report(error, context: context)

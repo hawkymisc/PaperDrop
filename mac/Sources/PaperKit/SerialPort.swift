@@ -33,7 +33,7 @@ public final class SerialPort: ByteTransport, @unchecked Sendable {
     }
 
     private func configure() throws {
-        guard ioctl(fd, TIOCEXCL) == 0 else { throw PaperError.io("\(path) は他のアプリが使用中です") }
+        guard ioctl(fd, TIOCEXCL) == 0 else { throw PaperError.io(L10n.t(.portBusy, path)) }
         var t = termios()
         guard tcgetattr(fd, &t) == 0 else { throw PaperError.io("tcgetattr: \(String(cString: strerror(errno)))") }
         cfmakeraw(&t)
@@ -73,13 +73,13 @@ public final class SerialPort: ByteTransport, @unchecked Sendable {
             let r = poll(&p, 1, ms)
             if r < 0 && errno != EINTR { throw PaperError.io("poll: \(String(cString: strerror(errno)))") }
             if r <= 0 { continue }
-            if p.revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 { throw PaperError.io("\(path) が切断されました") }
+            if p.revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 { throw PaperError.io(L10n.t(.portDisconnected, path)) }
             var chunk = [UInt8](repeating: 0, count: 4096)
             let n = chunk.withUnsafeMutableBytes { Darwin.read(fd, $0.baseAddress, $0.count) }
             if n > 0 {
                 buffer.append(contentsOf: chunk[..<n])
             } else if n == 0 || (errno != EAGAIN && errno != EINTR) {
-                throw PaperError.io("\(path) が切断されました")
+                throw PaperError.io(L10n.t(.portDisconnected, path))
             }
         }
     }

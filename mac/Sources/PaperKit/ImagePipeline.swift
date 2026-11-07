@@ -149,15 +149,15 @@ public enum ImageConverter {
     /// Loads any ImageIO-supported file, applying EXIF orientation.
     public static func load(url: URL) throws -> CGImage {
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else {
-            throw PaperError.image("読み込めないファイルです: \(url.lastPathComponent)")
+            throw PaperError.image(L10n.t(.unreadableFile, url.lastPathComponent))
         }
         return try decode(src, name: url.lastPathComponent)
     }
 
     /// Loads encoded image bytes (e.g. an image dragged from a browser).
-    public static func load(data: Data, name: String = "ドロップされた画像") throws -> CGImage {
+    public static func load(data: Data, name: String = L10n.t(.droppedImage)) throws -> CGImage {
         guard let src = CGImageSourceCreateWithData(data as CFData, nil) else {
-            throw PaperError.image("読み込めないデータです: \(name)")
+            throw PaperError.image(L10n.t(.unreadableData, name))
         }
         return try decode(src, name: name)
     }
@@ -166,10 +166,10 @@ public enum ImageConverter {
         guard let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
               let pw = props[kCGImagePropertyPixelWidth] as? Int,
               let ph = props[kCGImagePropertyPixelHeight] as? Int else {
-            throw PaperError.image("画像として認識できません: \(name)")
+            throw PaperError.image(L10n.t(.notAnImage, name))
         }
         guard pw > 0, ph > 0, pw * ph <= maxSourcePixels else {
-            throw PaperError.image("画像が大きすぎます（\(pw)×\(ph)）: \(name)")
+            throw PaperError.image(L10n.t(.imageTooLarge, pw, ph, name))
         }
         let opts: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -177,7 +177,7 @@ public enum ImageConverter {
             kCGImageSourceThumbnailMaxPixelSize: min(max(pw, ph), maxDecodedSide),
         ]
         guard let img = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else {
-            throw PaperError.image("デコードに失敗しました: \(name)")
+            throw PaperError.image(L10n.t(.decodeFailed, name))
         }
         return img
     }
